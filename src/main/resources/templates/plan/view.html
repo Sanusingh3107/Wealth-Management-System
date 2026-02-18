@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Investment Plan Details - Wealth Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root { --primary-color: #2c3e50; --secondary-color: #3498db; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; }
+        .sidebar { min-height: 100vh; background: linear-gradient(135deg, var(--primary-color) 0%, #1a252f 100%); padding-top: 20px; }
+        .sidebar .nav-link { color: rgba(255,255,255,0.8); padding: 12px 20px; margin: 2px 10px; border-radius: 8px; }
+        .sidebar .nav-link:hover { color: white; background-color: rgba(255,255,255,0.1); }
+        .sidebar .nav-link.active { color: white; background-color: var(--secondary-color); }
+        .sidebar .nav-link i { margin-right: 10px; }
+        .brand-logo { color: white; font-size: 1.5rem; font-weight: bold; padding: 0 20px 30px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; }
+        .brand-logo i { color: var(--secondary-color); }
+        .card { border: none; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.07); }
+        .plan-header { background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%); color: white; border-radius: 15px 15px 0 0; padding: 30px; }
+        .plan-header.paused { background: linear-gradient(135deg, #f39c12 0%, #d68910 100%); }
+        .plan-header.completed { background: linear-gradient(135deg, #7f8c8d 0%, #566573 100%); }
+        .stat-card { text-align: center; padding: 20px; border-radius: 10px; background: #f8f9fa; }
+        .stat-value { font-size: 1.8rem; font-weight: 700; color: var(--primary-color); }
+        .stat-label { color: #6c757d; font-size: 0.85rem; text-transform: uppercase; }
+        .info-item { padding: 15px 0; border-bottom: 1px solid #eee; }
+        .info-item:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+                <div class="brand-logo"><i class="bi bi-graph-up-arrow"></i> WMS</div>
+                <ul class="nav flex-column">
+                    <li class="nav-item"><a class="nav-link" href="/dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/clients"><i class="bi bi-people"></i> Clients</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/plans"><i class="bi bi-clipboard-data"></i> Investment Plans</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/portfolios"><i class="bi bi-briefcase"></i> Portfolios</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/reports"><i class="bi bi-file-earmark-text"></i> Reports</a></li>
+                    <li class="nav-item" sec:authorize="hasAnyRole('ADMIN', 'COMPLIANCE_OFFICER')">
+                        <a class="nav-link" href="/compliance"><i class="bi bi-shield-check"></i> Compliance</a>
+                    </li>
+                    <hr class="text-white-50 mx-3">
+                    <li class="nav-item">
+                        <form th:action="@{/logout}" method="post">
+                            <button type="submit" class="nav-link btn btn-link text-start w-100"><i class="bi bi-box-arrow-right"></i> Logout</button>
+                        </form>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+                <!-- Alert Messages -->
+                <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle"></i> <span th:text="${success}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <!-- Breadcrumb -->
+                <nav aria-label="breadcrumb" class="mb-4">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="/plans">Investment Plans</a></li>
+                        <li class="breadcrumb-item active" th:text="${plan.investmentObjective}">Plan Details</li>
+                    </ol>
+                </nav>
+
+                <!-- Plan Header Card -->
+                <div class="card mb-4">
+                    <div class="plan-header" th:classappend="${plan.status.name() == 'PAUSED'} ? 'paused' : (${plan.status.name() == 'COMPLETED'} ? 'completed' : '')">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <span class="badge bg-light text-dark mb-2" th:text="${plan.status}">ACTIVE</span>
+                                <h2 class="mb-2" th:text="${plan.investmentObjective}">Retirement Planning</h2>
+                                <p class="mb-0 opacity-75">
+                                    <i class="bi bi-person me-2"></i>
+                                    <a th:href="@{/clients/{id}(id=${plan.client.clientId})}" class="text-white" th:text="${plan.client.name}">John Doe</a>
+                                </p>
+                            </div>
+                            <div class="text-end">
+                                <a th:href="@{/plans/{id}/edit(id=${plan.planId})}" class="btn btn-light me-2">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </a>
+                                <!-- Status Actions -->
+                                <form th:if="${plan.status.name() == 'ACTIVE'}" th:action="@{/plans/{id}/pause(id=${plan.planId})}" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-warning"><i class="bi bi-pause"></i> Pause</button>
+                                </form>
+                                <form th:if="${plan.status.name() == 'PAUSED'}" th:action="@{/plans/{id}/resume(id=${plan.planId})}" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-success"><i class="bi bi-play"></i> Resume</button>
+                                </form>
+                                <form th:if="${plan.status.name() != 'COMPLETED'}" th:action="@{/plans/{id}/complete(id=${plan.planId})}" method="post" class="d-inline ms-2">
+                                    <button type="submit" class="btn btn-secondary"><i class="bi bi-check-circle"></i> Mark Complete</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Stats Row -->
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="stat-card">
+                                    <div class="stat-value" th:text="'₹' + ${#numbers.formatDecimal(plan.targetAmount, 0, 'COMMA', 0, 'POINT')}">₹100,000</div>
+                                    <div class="stat-label">Target Amount</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card">
+                                    <div class="stat-value" th:text="${plan.durationYears} + ' yrs'">5 yrs</div>
+                                    <div class="stat-label">Duration</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card">
+                                    <div class="stat-value">
+                                        <span class="badge" style="font-size: 1rem;"
+                                              th:classappend="${plan.riskAppetite.name() == 'LOW'} ? 'bg-success' : (${plan.riskAppetite.name() == 'MEDIUM'} ? 'bg-warning text-dark' : 'bg-danger')"
+                                              th:text="${plan.riskAppetite}">MEDIUM</span>
+                                    </div>
+                                    <div class="stat-label">Risk Level</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card">
+                                    <div class="stat-value" th:text="${plan.createdAt != null ? #temporals.format(plan.createdAt, 'MMM yyyy') : 'N/A'}">Jan 2024</div>
+                                    <div class="stat-label">Created</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Plan Details -->
+                        <h5 class="mb-3"><i class="bi bi-info-circle text-primary me-2"></i>Plan Details</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="info-item">
+                                    <small class="text-muted">Investment Objective</small>
+                                    <div class="fw-bold" th:text="${plan.investmentObjective}">Retirement Planning</div>
+                                </div>
+                                <div class="info-item">
+                                    <small class="text-muted">Client</small>
+                                    <div>
+                                        <a th:href="@{/clients/{id}(id=${plan.client.clientId})}" class="text-decoration-none">
+                                            <i class="bi bi-person-circle me-1"></i><span th:text="${plan.client.name}">John Doe</span>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="info-item">
+                                    <small class="text-muted">Client Email</small>
+                                    <div th:text="${plan.client.email}">john@email.com</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="info-item">
+                                    <small class="text-muted">Target Amount</small>
+                                    <div class="fw-bold text-success" th:text="'₹' + ${#numbers.formatDecimal(plan.targetAmount, 0, 'COMMA', 2, 'POINT')}">₹100,000.00</div>
+                                </div>
+                                <div class="info-item">
+                                    <small class="text-muted">Duration</small>
+                                    <div th:text="${plan.durationYears} + ' years'">5 years</div>
+                                </div>
+                                <div class="info-item">
+                                    <small class="text-muted">Created / Updated</small>
+                                    <div>
+                                        <span th:text="${plan.createdAt != null ? #temporals.format(plan.createdAt, 'MMM d, yyyy') : 'N/A'}">Jan 1, 2024</span>
+                                        <span class="text-muted"> / </span>
+                                        <span th:text="${plan.updatedAt != null ? #temporals.format(plan.updatedAt, 'MMM d, yyyy') : 'N/A'}">Jan 5, 2024</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Asset Allocation Card -->
+                <div class="card mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="bi bi-pie-chart text-primary me-2"></i>Asset Allocation Strategy</h5>
+                    </div>
+                    <div class="card-body">
+                        <div th:if="${plan.allocationDetails != null && !#strings.isEmpty(plan.allocationDetails)}" id="allocationContainer">
+                            <!-- This will be populated by JavaScript for JSON format -->
+                            <div id="allocationDisplay"></div>
+                            <!-- Fallback for non-JSON text -->
+                            <pre id="allocationFallback" class="bg-light p-3 rounded d-none" style="white-space: pre-wrap;" th:text="${plan.allocationDetails}"></pre>
+                            <script th:inline="javascript">
+                                (function() {
+                                    var rawData = /*[[${plan.allocationDetails}]]*/ '';
+                                    var displayDiv = document.getElementById('allocationDisplay');
+                                    var fallbackDiv = document.getElementById('allocationFallback');
+                                    
+                                    try {
+                                        var data = JSON.parse(rawData);
+                                        var colors = {
+                                            'stocks': '#3498db',
+                                            'bonds': '#27ae60', 
+                                            'cash': '#f39c12',
+                                            'alternatives': '#9b59b6',
+                                            'real estate': '#e74c3c',
+                                            'commodities': '#1abc9c',
+                                            'crypto': '#e67e22',
+                                            'default': '#95a5a6'
+                                        };
+                                        
+                                        var html = '<div class="row">';
+                                        for (var key in data) {
+                                            var value = data[key];
+                                            var color = colors[key.toLowerCase()] || colors['default'];
+                                            var label = key.charAt(0).toUpperCase() + key.slice(1);
+                                            
+                                            html += '<div class="col-md-6 mb-3">';
+                                            html += '<div class="d-flex justify-content-between mb-1">';
+                                            html += '<span class="fw-semibold">' + label + '</span>';
+                                            html += '<span class="text-muted">' + value + '%</span>';
+                                            html += '</div>';
+                                            html += '<div class="progress" style="height: 10px;">';
+                                            html += '<div class="progress-bar" role="progressbar" style="width: ' + value + '%; background-color: ' + color + ';" aria-valuenow="' + value + '" aria-valuemin="0" aria-valuemax="100"></div>';
+                                            html += '</div>';
+                                            html += '</div>';
+                                        }
+                                        html += '</div>';
+                                        
+                                        displayDiv.innerHTML = html;
+                                    } catch (e) {
+                                        // Not valid JSON, show as plain text
+                                        displayDiv.classList.add('d-none');
+                                        fallbackDiv.classList.remove('d-none');
+                                    }
+                                })();
+                            </script>
+                        </div>
+                        <div th:if="${plan.allocationDetails == null || #strings.isEmpty(plan.allocationDetails)}" class="text-center text-muted py-4">
+                            <i class="bi bi-pie-chart display-4"></i>
+                            <p class="mt-2">No allocation details specified</p>
+                            <a th:href="@{/plans/{id}/edit(id=${plan.planId})}" class="btn btn-outline-primary btn-sm">Add Allocation Details</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="card mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="bi bi-lightning text-warning me-2"></i>Quick Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <a th:href="@{/plans/{id}/create-portfolio(id=${plan.planId})}" class="btn btn-success w-100 py-3">
+                                    <i class="bi bi-plus-circle display-6"></i>
+                                    <div class="mt-2 fw-bold">Create Portfolio from Plan</div>
+                                    <small class="text-white-50">Auto-create based on strategy</small>
+                                </a>
+                            </div>
+                            <div class="col-md-3">
+                                <a th:href="@{/portfolios/new(clientId=${plan.client.clientId})}" class="btn btn-outline-success w-100 py-3">
+                                    <i class="bi bi-briefcase-fill display-6"></i>
+                                    <div class="mt-2">Manual Portfolio</div>
+                                </a>
+                            </div>
+                            <div class="col-md-3">
+                                <a th:href="@{/clients/{id}(id=${plan.client.clientId})}" class="btn btn-outline-primary w-100 py-3">
+                                    <i class="bi bi-person-circle display-6"></i>
+                                    <div class="mt-2">View Client Profile</div>
+                                </a>
+                            </div>
+                            <div class="col-md-3">
+                                <a th:href="@{/plans/client/{id}(id=${plan.client.clientId})}" class="btn btn-outline-info w-100 py-3">
+                                    <i class="bi bi-list-ul display-6"></i>
+                                    <div class="mt-2">All Client Plans</div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Linked Portfolios Section -->
+                <div class="card">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-link-45deg text-primary me-2"></i>Linked Portfolios</h5>
+                        <span class="badge bg-primary" th:text="${#lists.size(linkedPortfolios)} + ' portfolio(s)'">0 portfolio(s)</span>
+                    </div>
+                    <div class="card-body">
+                        <div th:if="${hasPortfolios}">
+                            <p class="text-muted mb-3">These portfolios were created based on this investment plan:</p>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Portfolio Name</th>
+                                            <th>Initial Investment</th>
+                                            <th>Current Value</th>
+                                            <th>Return %</th>
+                                            <th>Last Updated</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="portfolio : ${linkedPortfolios}">
+                                            <td>
+                                                <a th:href="@{/portfolios/{id}(id=${portfolio.portfolioId})}" th:text="${portfolio.portfolioName}">Portfolio Name</a>
+                                            </td>
+                                            <td th:text="'₹' + ${#numbers.formatDecimal(portfolio.initialInvestment, 0, 'COMMA', 2, 'POINT')}">₹100,000.00</td>
+                                            <td th:text="'₹' + ${#numbers.formatDecimal(portfolio.totalValue, 0, 'COMMA', 2, 'POINT')}">₹110,000.00</td>
+                                            <td>
+                                                <span th:class="${portfolio.calculateReturnPercentage().compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'text-success' : 'text-danger'"
+                                                      th:text="${portfolio.calculateReturnPercentage()} + '%'">10%</span>
+                                            </td>
+                                            <td th:text="${#temporals.format(portfolio.lastUpdated, 'MMM d, yyyy')}">Jan 1, 2024</td>
+                                            <td>
+                                                <a th:href="@{/portfolios/{id}(id=${portfolio.portfolioId})}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-eye"></i> View
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div th:unless="${hasPortfolios}" class="text-center py-4">
+                            <i class="bi bi-briefcase display-4 text-muted"></i>
+                            <p class="text-muted mt-2">No portfolios created from this plan yet</p>
+                            <a th:href="@{/plans/{id}/create-portfolio(id=${plan.planId})}" class="btn btn-success">
+                                <i class="bi bi-plus-circle me-1"></i> Create Portfolio from This Plan
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Details - Wealth Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root { --primary-color: #2c3e50; --secondary-color: #3498db; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; }
+        .sidebar { min-height: 100vh; background: linear-gradient(135deg, var(--primary-color) 0%, #1a252f 100%); padding-top: 20px; }
+        .sidebar .nav-link { color: rgba(255,255,255,0.8); padding: 12px 20px; margin: 2px 10px; border-radius: 8px; }
+        .sidebar .nav-link:hover { color: white; background-color: rgba(255,255,255,0.1); }
+        .sidebar .nav-link.active { color: white; background-color: var(--secondary-color); }
+        .sidebar .nav-link i { margin-right: 10px; }
+        .brand-logo { color: white; font-size: 1.5rem; font-weight: bold; padding: 0 20px 30px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; }
+        .brand-logo i { color: var(--secondary-color); }
+        .card { border: none; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.07); }
+        .report-header { background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; border-radius: 15px 15px 0 0; padding: 30px; }
+        .stat-card { text-align: center; padding: 20px; border-radius: 10px; background: #f8f9fa; }
+        .stat-value { font-size: 1.5rem; font-weight: 700; }
+        .stat-label { color: #6c757d; font-size: 0.85rem; text-transform: uppercase; }
+        .print-section { background: white; padding: 30px; border-radius: 10px; }
+        @media print {
+            .sidebar, .no-print { display: none !important; }
+            .col-md-9 { width: 100% !important; margin: 0 !important; }
+            .print-section { box-shadow: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse no-print">
+                <div class="brand-logo"><i class="bi bi-graph-up-arrow"></i> WMS</div>
+                <ul class="nav flex-column">
+                    <li class="nav-item"><a class="nav-link" href="/dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/clients"><i class="bi bi-people"></i> Clients</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/plans"><i class="bi bi-clipboard-data"></i> Investment Plans</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/portfolios"><i class="bi bi-briefcase"></i> Portfolios</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/reports"><i class="bi bi-file-earmark-text"></i> Reports</a></li>
+                    <li class="nav-item" sec:authorize="hasAnyRole('ADMIN', 'COMPLIANCE_OFFICER')">
+                        <a class="nav-link" href="/compliance"><i class="bi bi-shield-check"></i> Compliance</a>
+                    </li>
+                    <hr class="text-white-50 mx-3">
+                    <li class="nav-item">
+                        <form th:action="@{/logout}" method="post">
+                            <button type="submit" class="nav-link btn btn-link text-start w-100"><i class="bi bi-box-arrow-right"></i> Logout</button>
+                        </form>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+                <!-- Breadcrumb -->
+                <nav aria-label="breadcrumb" class="mb-4 no-print">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="/reports">Reports</a></li>
+                        <li class="breadcrumb-item active" th:text="${report.reportTitle}">Report</li>
+                    </ol>
+                </nav>
+
+                <!-- Report Header -->
+                <div class="card mb-4">
+                    <div class="report-header">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <span class="badge bg-light text-dark mb-2" th:text="${report.reportType}">MONTHLY</span>
+                                <h2 class="mb-2" th:text="${report.reportTitle}">Monthly Performance Report</h2>
+                                <p class="mb-0 opacity-75">
+                                    <i class="bi bi-calendar me-2"></i><span th:text="${#temporals.format(report.reportDate, 'MMMM d, yyyy')}">January 1, 2024</span>
+                                </p>
+                            </div>
+                            <div class="no-print">
+                                <button onclick="window.print()" class="btn btn-light me-2">
+                                    <i class="bi bi-printer"></i> Print
+                                </button>
+                                <form th:action="@{/reports/{id}/delete(id=${report.reportId})}" method="post" class="d-inline"
+                                      onsubmit="return confirm('Are you sure you want to delete this report?');">
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="bi bi-trash"></i> Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Portfolio Stats -->
+                        <div class="row mb-4" th:with="returnPct=${report.portfolio.calculateReturnPercentage()}">
+                            <div class="col-md-3">
+                                <div class="stat-card">
+                                    <div class="stat-value text-primary" th:text="'₹' + ${#numbers.formatDecimal(report.portfolio.totalValue, 0, 'COMMA', 2, 'POINT')}">₹55,000.00</div>
+                                    <div class="stat-label">Current Value</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card">
+                                    <div class="stat-value" th:text="'₹' + ${#numbers.formatDecimal(report.portfolio.initialInvestment, 0, 'COMMA', 2, 'POINT')}">₹50,000.00</div>
+                                    <div class="stat-label">Initial Investment</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card">
+                                    <div class="stat-value" th:class="${returnPct >= 0} ? 'text-success' : 'text-danger'">
+                                        <span th:text="${#numbers.formatDecimal(returnPct, 0, 'COMMA', 2, 'POINT')} + '%'">10.00%</span>
+                                    </div>
+                                    <div class="stat-label">Total Return</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card">
+                                    <div class="stat-value" th:text="${#temporals.format(report.portfolio.lastUpdated, 'MMM d')}">Jan 5</div>
+                                    <div class="stat-label">Last Updated</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Content -->
+                <div class="print-section">
+                    <!-- Report Info -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5 class="text-muted mb-3">Portfolio Information</h5>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="fw-bold" style="width: 40%">Portfolio:</td>
+                                    <td>
+                                        <a th:href="@{/portfolios/{id}(id=${report.portfolio.portfolioId})}" class="no-print" th:text="${report.portfolio.portfolioName}">Growth Portfolio</a>
+                                        <span class="d-none d-print-inline" th:text="${report.portfolio.portfolioName}">Growth Portfolio</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Client:</td>
+                                    <td>
+                                        <a th:href="@{/clients/{id}(id=${report.portfolio.client.clientId})}" class="no-print" th:text="${report.portfolio.client.name}">John Doe</a>
+                                        <span class="d-none d-print-inline" th:text="${report.portfolio.client.name}">John Doe</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Client Email:</td>
+                                    <td th:text="${report.portfolio.client.email}">john@email.com</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="text-muted mb-3">Report Details</h5>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="fw-bold" style="width: 40%">Report Type:</td>
+                                    <td><span class="badge bg-info" th:text="${report.reportType}">MONTHLY</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Report Date:</td>
+                                    <td th:text="${#temporals.format(report.reportDate, 'MMMM d, yyyy')}">January 1, 2024</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Generated By:</td>
+                                    <td th:text="${generatedByUsername != null ? generatedByUsername : 'N/A'}">Admin User</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Performance Summary -->
+                    <div class="mb-4">
+                        <h5 class="mb-3"><i class="bi bi-graph-up text-success me-2"></i>Performance Summary</h5>
+                        <div class="bg-light p-4 rounded" th:if="${report.performanceSummary != null && !#strings.isEmpty(report.performanceSummary)}">
+                            <pre class="mb-0" style="white-space: pre-wrap; font-family: inherit; background: transparent; border: none; padding: 0;" th:text="${report.performanceSummary}">
+                                The portfolio has shown strong performance during the reporting period...
+                            </pre>
+                        </div>
+                        <div class="text-muted" th:if="${report.performanceSummary == null || #strings.isEmpty(report.performanceSummary)}">
+                            <em>No performance summary provided.</em>
+                        </div>
+                    </div>
+
+                    <!-- Asset Allocation -->
+                    <div class="mb-4">
+                        <h5 class="mb-3"><i class="bi bi-pie-chart text-primary me-2"></i>Asset Allocation</h5>
+                        <!-- Show structured table if parsed allocations available -->
+                        <div class="table-responsive" th:if="${allocations != null && !allocations.isEmpty()}">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Asset</th>
+                                        <th class="text-end">Value</th>
+                                        <th class="text-end">Allocation</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="item : ${allocations}">
+                                        <td th:text="${item.asset}">Asset Name</td>
+                                        <td class="text-end text-success fw-bold" th:text="${item.value}">₹0</td>
+                                        <td class="text-end">
+                                            <span class="badge bg-primary" th:text="${item.percentage}">0%</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- Show raw allocation summary if no structured allocations but raw text exists -->
+                        <div class="bg-light p-4 rounded" th:if="${(allocations == null || allocations.isEmpty()) && rawAllocationSummary != null && !#strings.isEmpty(rawAllocationSummary)}">
+                            <pre class="mb-0" style="white-space: pre-wrap; font-family: inherit;" th:text="${rawAllocationSummary}">Allocation details</pre>
+                        </div>
+                        <!-- Show empty state only if no allocation data at all -->
+                        <div class="text-muted bg-light p-4 rounded" th:if="${(allocations == null || allocations.isEmpty()) && (rawAllocationSummary == null || #strings.isEmpty(rawAllocationSummary))}">
+                            <div class="text-center">
+                                <i class="bi bi-pie-chart display-4 text-secondary"></i>
+                                <p class="mt-3 mb-2">No asset allocation details available for this portfolio.</p>
+                                <p class="small">To add allocation details, edit the portfolio and enter allocation information in the Asset Allocation Summary field.</p>
+                                <a th:href="@{/portfolios/{id}/edit(id=${report.portfolio.portfolioId})}" class="btn btn-outline-primary btn-sm mt-2">
+                                    <i class="bi bi-pencil me-1"></i>Edit Portfolio
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Notes -->
+                    <div class="mb-4" th:if="${report.notes != null && !#strings.isEmpty(report.notes)}">
+                        <h5 class="mb-3"><i class="bi bi-sticky text-warning me-2"></i>Additional Notes</h5>
+                        <div class="bg-light p-4 rounded">
+                            <p class="mb-0" style="white-space: pre-wrap;" th:text="${report.notes}">
+                                Additional observations and recommendations...
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <hr>
+                    <div class="text-center text-muted small">
+                        <p class="mb-1">This report was generated by the Wealth Management System</p>
+                        <p class="mb-0">Report ID: <span th:text="${report.reportId}">1</span> | 
+                           Report Date: <span th:text="${#temporals.format(report.reportDate, 'MMMM d, yyyy')}">Jan 1, 2024</span></p>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="card mt-4 no-print">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="bi bi-lightning text-warning me-2"></i>Quick Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <a th:href="@{/reports/new(portfolioId=${report.portfolio.portfolioId})}" class="btn btn-outline-primary w-100 py-3">
+                                    <i class="bi bi-file-earmark-plus display-6"></i>
+                                    <div class="mt-2">New Report for Portfolio</div>
+                                </a>
+                            </div>
+                            <div class="col-md-4">
+                                <a th:href="@{/portfolios/{id}(id=${report.portfolio.portfolioId})}" class="btn btn-outline-success w-100 py-3">
+                                    <i class="bi bi-briefcase display-6"></i>
+                                    <div class="mt-2">View Portfolio</div>
+                                </a>
+                            </div>
+                            <div class="col-md-4">
+                                <a th:href="@{/clients/{id}(id=${report.portfolio.client.clientId})}" class="btn btn-outline-info w-100 py-3">
+                                    <i class="bi bi-person-circle display-6"></i>
+                                    <div class="mt-2">View Client</div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

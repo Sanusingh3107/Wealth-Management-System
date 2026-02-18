@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    
+    <modelVersion>4.0.0</modelVersion>
+    
+    <!-- 
+    ========================================
+    PROJECT INFORMATION
+    ========================================
+    This section defines basic project details.
+    Think of it as the "ID card" of your project.
+    -->
+    <groupId>com.wms</groupId>
+    <artifactId>wealth-management-system</artifactId>
+    <version>1.0.0</version>
+    <name>Wealth Management System</name>
+    <description>A Spring Boot application for managing client investments and portfolios</description>
+    <packaging>jar</packaging>
+    
+    <!-- 
+    ========================================
+    PARENT PROJECT
+    ========================================
+    Spring Boot Starter Parent provides:
+    - Default configurations
+    - Dependency management (no need to specify versions)
+    - Plugin configurations
+    Think of it as inheriting "best practices" from Spring Boot.
+    -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.5.0</version>
+        <relativePath/>
+    </parent>
+    
+    <!-- 
+    ========================================
+    JAVA VERSION
+    ========================================
+    We're using Java 21 as specified.
+    -->
+    <properties>
+        <java.version>21</java.version>
+        <!-- Override Spring Security version to fix CVE-2025-41248 -->
+        <spring-security.version>6.5.4</spring-security.version>
+        <!-- Override Logback version to fix CVE-2025-11226 and CVE-2026-1225 -->
+        <logback.version>1.5.25</logback.version>
+    </properties>
+    
+    <!-- 
+    ========================================
+    DEPENDENCIES
+    ========================================
+    Dependencies are like "ingredients" for your application.
+    Each dependency adds specific functionality.
+    -->
+    <dependencies>
+        
+        <!-- 
+        SPRING BOOT WEB
+        - Enables building web applications
+        - Includes embedded Tomcat server
+        - Provides REST API capabilities
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        
+        <!-- 
+        SPRING DATA JPA
+        - Simplifies database operations
+        - No need to write SQL queries manually
+        - Provides Repository pattern implementation
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        
+        <!-- 
+        THYMELEAF
+        - Template engine for creating HTML pages
+        - Integrates seamlessly with Spring Boot
+        - Allows dynamic content in HTML
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
+        
+        <!-- 
+        SPRING SECURITY
+        - Handles authentication (who are you?)
+        - Handles authorization (what can you do?)
+        - Provides form-based login
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        
+        <!-- 
+        THYMELEAF SECURITY EXTRAS
+        - Adds security features to Thymeleaf templates
+        - Example: Show/hide content based on user roles
+        -->
+        <dependency>
+            <groupId>org.thymeleaf.extras</groupId>
+            <artifactId>thymeleaf-extras-springsecurity6</artifactId>
+        </dependency>
+        
+        <!-- 
+        MYSQL CONNECTOR
+        - Driver to connect Java application with MySQL database
+        - Runtime only (not needed during compilation)
+        -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        
+        <!-- 
+        VALIDATION
+        - Validates user input (e.g., email format, required fields)
+        - Prevents invalid data from entering the system
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        
+        <!-- 
+        DEVTOOLS
+        - Enables hot reload during development
+        - Automatically restarts server on code changes
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- 
+        LOMBOK (Optional but helpful)
+        - Reduces boilerplate code
+        - Auto-generates getters, setters, constructors
+        -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- 
+        TESTING
+        - For writing and running unit tests
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        
+        <!-- 
+        MOCKITO SUBCLASS
+        - Required for mocking classes with newer Java versions
+        - Uses subclass approach instead of inline mocking
+        -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-subclass</artifactId>
+            <version>5.11.0</version>
+            <scope>test</scope>
+        </dependency>
+        
+        <!--
+        H2 DATABASE (Test)
+        - In-memory database for testing
+        -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+        
+    </dependencies>
+    
+    <!-- 
+    ========================================
+    BUILD CONFIGURATION
+    ========================================
+    Defines how to build the application.
+    -->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+            
+            <!-- 
+            MAVEN SUREFIRE PLUGIN
+            - Runs unit tests
+            - Configures JVM args for Java 21+ compatibility with Mockito
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.1.2</version>
+                <configuration>
+                    <argLine>
+                        @{argLine}
+                        --add-opens java.base/java.lang=ALL-UNNAMED
+                        --add-opens java.base/java.lang.reflect=ALL-UNNAMED
+                    </argLine>
+                </configuration>
+            </plugin>
+            
+            <!-- 
+            JACOCO MAVEN PLUGIN
+            - Generates code coverage reports
+            - Measures how much of your code is tested
+            -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.11</version>
+                <configuration>
+                    <excludes>
+                        <!-- Exclude Spring Data JPA Repository interfaces -->
+                        <exclude>**/repository/*Repository*</exclude>
+                        <!-- Exclude main application class (Spring Boot entry point) -->
+                        <exclude>**/WealthManagementApplication*</exclude>
+                        <exclude>com/wealth/management/WealthManagementApplication.class</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+    
+</project>

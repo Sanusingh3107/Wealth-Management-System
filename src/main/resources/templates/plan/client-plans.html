@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${client.name} + ' - Investment Plans'">Client Investment Plans - Wealth Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root { --primary-color: #2c3e50; --secondary-color: #3498db; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; }
+        .sidebar { min-height: 100vh; background: linear-gradient(135deg, var(--primary-color) 0%, #1a252f 100%); padding-top: 20px; }
+        .sidebar .nav-link { color: rgba(255,255,255,0.8); padding: 12px 20px; margin: 2px 10px; border-radius: 8px; }
+        .sidebar .nav-link:hover { color: white; background-color: rgba(255,255,255,0.1); }
+        .sidebar .nav-link.active { color: white; background-color: var(--secondary-color); }
+        .sidebar .nav-link i { margin-right: 10px; }
+        .brand-logo { color: white; font-size: 1.5rem; font-weight: bold; padding: 0 20px 30px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; }
+        .brand-logo i { color: var(--secondary-color); }
+        .card { border: none; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.07); }
+        .table thead { background-color: var(--primary-color); color: white; }
+        .table th, .table td { padding: 15px; vertical-align: middle; }
+        .client-header { background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%); color: white; border-radius: 15px; padding: 25px; margin-bottom: 25px; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+                <div class="brand-logo"><i class="bi bi-graph-up-arrow"></i> WMS</div>
+                <ul class="nav flex-column">
+                    <li class="nav-item"><a class="nav-link" href="/dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/clients"><i class="bi bi-people"></i> Clients</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/plans"><i class="bi bi-clipboard-data"></i> Investment Plans</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/portfolios"><i class="bi bi-briefcase"></i> Portfolios</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/reports"><i class="bi bi-file-earmark-text"></i> Reports</a></li>
+                    <li class="nav-item" sec:authorize="hasAnyRole('ADMIN', 'COMPLIANCE_OFFICER')">
+                        <a class="nav-link" href="/compliance"><i class="bi bi-shield-check"></i> Compliance</a>
+                    </li>
+                    <hr class="text-white-50 mx-3">
+                    <li class="nav-item">
+                        <form th:action="@{/logout}" method="post">
+                            <button type="submit" class="nav-link btn btn-link text-start w-100"><i class="bi bi-box-arrow-right"></i> Logout</button>
+                        </form>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+                <!-- Alert Messages -->
+                <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle"></i> <span th:text="${success}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i> <span th:text="${error}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <!-- Client Header -->
+                <div class="client-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-1">
+                                <i class="bi bi-person-circle me-2"></i>
+                                <span th:text="${client.name}">Client Name</span>
+                            </h2>
+                            <p class="mb-0 opacity-75">
+                                <i class="bi bi-envelope me-1"></i> <span th:text="${client.email}">client@email.com</span>
+                                <span class="mx-2">|</span>
+                                <i class="bi bi-telephone me-1"></i> <span th:text="${client.phone}">+1234567890</span>
+                            </p>
+                        </div>
+                        <div>
+                            <a th:href="@{/clients/{id}(id=${client.clientId})}" class="btn btn-light me-2">
+                                <i class="bi bi-arrow-left"></i> Back to Client
+                            </a>
+                            <a th:href="@{/plans/new(clientId=${client.clientId})}" class="btn btn-warning">
+                                <i class="bi bi-plus-lg"></i> Create Plan
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Page Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h4><i class="bi bi-clipboard-data"></i> Investment Plans</h4>
+                        <p class="text-muted mb-0">
+                            Showing <span th:text="${#lists.size(plans)}">0</span> plan(s) for this client
+                        </p>
+                    </div>
+                    <a href="/plans" class="btn btn-outline-secondary">
+                        <i class="bi bi-list"></i> View All Plans
+                    </a>
+                </div>
+
+                <!-- Plans Table -->
+                <div class="card">
+                    <div class="card-body p-0">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Objective</th>
+                                    <th>Risk Appetite</th>
+                                    <th>Target Amount</th>
+                                    <th>Duration</th>
+                                    <th>Status</th>
+                                    <th>Created Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="plan, iter : ${plans}">
+                                    <td th:text="${iter.index + 1}">1</td>
+                                    <td th:text="${plan.investmentObjective}">Retirement Planning</td>
+                                    <td>
+                                        <span class="badge" 
+                                              th:classappend="${plan.riskAppetite.name() == 'LOW'} ? 'bg-success' : (${plan.riskAppetite.name() == 'MEDIUM'} ? 'bg-warning text-dark' : 'bg-danger')"
+                                              th:text="${plan.riskAppetite}">MEDIUM</span>
+                                    </td>
+                                    <td th:text="'₹' + ${#numbers.formatDecimal(plan.targetAmount, 0, 'COMMA', 2, 'POINT')}">₹100,000.00</td>
+                                    <td th:text="${plan.durationYears} + ' years'">5 years</td>
+                                    <td>
+                                        <span class="badge" 
+                                              th:classappend="${plan.status.name() == 'ACTIVE'} ? 'bg-success' : (${plan.status.name() == 'PAUSED'} ? 'bg-warning text-dark' : 'bg-secondary')"
+                                              th:text="${plan.status}">ACTIVE</span>
+                                    </td>
+                                    <td th:text="${#temporals.format(plan.createdAt, 'dd MMM yyyy')}">01 Jan 2024</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a th:href="@{/plans/{id}(id=${plan.planId})}" class="btn btn-outline-primary" title="View">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a th:href="@{/plans/{id}/edit(id=${plan.planId})}" class="btn btn-outline-warning" title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <!-- Status Actions -->
+                                            <form th:if="${plan.status.name() == 'ACTIVE'}" th:action="@{/plans/{id}/pause(id=${plan.planId})}" method="post" class="d-inline">
+                                                <button type="submit" class="btn btn-outline-secondary" title="Pause">
+                                                    <i class="bi bi-pause"></i>
+                                                </button>
+                                            </form>
+                                            <form th:if="${plan.status.name() == 'PAUSED'}" th:action="@{/plans/{id}/resume(id=${plan.planId})}" method="post" class="d-inline">
+                                                <button type="submit" class="btn btn-outline-success" title="Resume">
+                                                    <i class="bi bi-play"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(plans)}">
+                                    <td colspan="8" class="text-center text-muted py-5">
+                                        <i class="bi bi-clipboard-x display-4"></i>
+                                        <p class="mt-3">No investment plans found for this client</p>
+                                        <a th:href="@{/plans/new(clientId=${client.clientId})}" class="btn btn-primary">
+                                            <i class="bi bi-plus-lg"></i> Create First Plan
+                                        </a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="row mt-4" th:if="${!#lists.isEmpty(plans)}">
+                    <div class="col-md-4">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h3 th:text="${#lists.size(plans.?[status.name() == 'ACTIVE'])}">0</h3>
+                                <p class="mb-0">Active Plans</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-warning">
+                            <div class="card-body text-center">
+                                <h3 th:text="${#lists.size(plans.?[status.name() == 'PAUSED'])}">0</h3>
+                                <p class="mb-0">Paused Plans</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-secondary text-white">
+                            <div class="card-body text-center">
+                                <h3 th:text="${#lists.size(plans.?[status.name() == 'COMPLETED'])}">0</h3>
+                                <p class="mb-0">Completed Plans</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

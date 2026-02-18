@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compliance Summary - Wealth Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root { --primary-color: #2c3e50; --secondary-color: #3498db; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; }
+        .sidebar { min-height: 100vh; background: linear-gradient(135deg, var(--primary-color) 0%, #1a252f 100%); padding-top: 20px; }
+        .sidebar .nav-link { color: rgba(255,255,255,0.8); padding: 12px 20px; margin: 2px 10px; border-radius: 8px; }
+        .sidebar .nav-link:hover { color: white; background-color: rgba(255,255,255,0.1); }
+        .sidebar .nav-link.active { color: white; background-color: var(--secondary-color); }
+        .sidebar .nav-link i { margin-right: 10px; }
+        .brand-logo { color: white; font-size: 1.5rem; font-weight: bold; padding: 0 20px 30px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; }
+        .brand-logo i { color: var(--secondary-color); }
+        .card { border: none; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.07); }
+        .summary-header.compliant { background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%); color: white; }
+        .summary-header.non-compliant { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; }
+        .stat-card { text-align: center; padding: 25px 15px; border-radius: 10px; background: #f8f9fa; }
+        .stat-card .value { font-size: 2rem; font-weight: 700; }
+        .stat-card .label { color: #6c757d; font-size: 0.85rem; text-transform: uppercase; }
+        .stat-card.success { border-left: 4px solid #27ae60; }
+        .stat-card.danger { border-left: 4px solid #e74c3c; }
+        .stat-card.warning { border-left: 4px solid #f39c12; }
+        .stat-card.info { border-left: 4px solid #3498db; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+                <div class="brand-logo"><i class="bi bi-graph-up-arrow"></i> WMS</div>
+                <ul class="nav flex-column">
+                    <li class="nav-item"><a class="nav-link" href="/dashboard"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/clients"><i class="bi bi-people"></i> Clients</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/plans"><i class="bi bi-clipboard-data"></i> Investment Plans</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/portfolios"><i class="bi bi-briefcase"></i> Portfolios</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/reports"><i class="bi bi-file-earmark-text"></i> Reports</a></li>
+                    <li class="nav-item" sec:authorize="hasAnyRole('ADMIN', 'COMPLIANCE_OFFICER')">
+                        <a class="nav-link active" href="/compliance"><i class="bi bi-shield-check"></i> Compliance</a>
+                    </li>
+                    <hr class="text-white-50 mx-3">
+                    <li class="nav-item">
+                        <form th:action="@{/logout}" method="post">
+                            <button type="submit" class="nav-link btn btn-link text-start w-100"><i class="bi bi-box-arrow-right"></i> Logout</button>
+                        </form>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+                <!-- Breadcrumb -->
+                <nav aria-label="breadcrumb" class="mb-4">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="/compliance">Compliance</a></li>
+                        <li class="breadcrumb-item active">Summary Report</li>
+                    </ol>
+                </nav>
+
+                <!-- Alert Messages -->
+                <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle me-2"></i><span th:text="${success}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <div th:if="${warning}" class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i><span th:text="${warning}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <!-- Summary Header -->
+                <div class="card mb-4">
+                    <div class="summary-header p-4" th:classappend="${isCompliant} ? 'compliant' : 'non-compliant'">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h3 class="mb-2">
+                                    <i th:class="${isCompliant} ? 'bi bi-shield-check' : 'bi bi-shield-x'" class="me-2"></i>
+                                    Compliance Summary Report
+                                </h3>
+                                <p class="mb-0 opacity-75">
+                                    <i class="bi bi-calendar me-1"></i>
+                                    Period: <span th:text="${startDate}">2024-01-01</span> to <span th:text="${endDate}">2024-01-31</span>
+                                </p>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-light text-dark fs-5" th:if="${isCompliant}">
+                                    <i class="bi bi-check-circle text-success me-1"></i> COMPLIANT
+                                </span>
+                                <span class="badge bg-light text-dark fs-5" th:unless="${isCompliant}">
+                                    <i class="bi bi-x-circle text-danger me-1"></i> NON-COMPLIANT
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Statistics Row -->
+                        <div class="row g-3" id="statsContainer">
+                            <div class="col-md-3">
+                                <div class="stat-card info">
+                                    <div class="value" id="totalEvents">-</div>
+                                    <div class="label">Total Events</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card success">
+                                    <div class="value" id="passedEvents">-</div>
+                                    <div class="label">Passed</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card danger">
+                                    <div class="value" id="failedEvents">-</div>
+                                    <div class="label">Failed</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card warning">
+                                    <div class="value" id="warningEvents">-</div>
+                                    <div class="label">Warnings</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Compliance Rate -->
+                        <div class="mt-4">
+                            <label class="form-label">Compliance Rate</label>
+                            <div class="progress" style="height: 30px;">
+                                <div class="progress-bar bg-success" role="progressbar" id="complianceBar" 
+                                     style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                                    <span id="complianceRate">0%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="bi bi-lightning text-warning me-2"></i>Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <a href="/compliance/verify" class="btn btn-outline-primary w-100 py-3">
+                                    <i class="bi bi-arrow-repeat display-6"></i>
+                                    <div class="mt-2">Run New Check</div>
+                                </a>
+                            </div>
+                            <div class="col-md-3">
+                                <a href="/compliance/failures" class="btn btn-outline-danger w-100 py-3">
+                                    <i class="bi bi-exclamation-triangle display-6"></i>
+                                    <div class="mt-2">View Failures</div>
+                                </a>
+                            </div>
+                            <div class="col-md-3">
+                                <a href="/compliance/audit-logs" class="btn btn-outline-info w-100 py-3">
+                                    <i class="bi bi-list-ul display-6"></i>
+                                    <div class="mt-2">All Audit Logs</div>
+                                </a>
+                            </div>
+                            <div class="col-md-3">
+                                <a href="/compliance" class="btn btn-outline-secondary w-100 py-3">
+                                    <i class="bi bi-speedometer2 display-6"></i>
+                                    <div class="mt-2">Dashboard</div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recommendations -->
+                <div class="card mt-4" th:unless="${isCompliant}">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0"><i class="bi bi-exclamation-diamond me-2"></i>Recommended Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex align-items-center">
+                                <i class="bi bi-1-circle text-danger me-3 fs-4"></i>
+                                <div>
+                                    <strong>Review Compliance Failures</strong>
+                                    <p class="mb-0 text-muted">Immediately investigate all failed compliance events</p>
+                                </div>
+                            </li>
+                            <li class="list-group-item d-flex align-items-center">
+                                <i class="bi bi-2-circle text-warning me-3 fs-4"></i>
+                                <div>
+                                    <strong>Document Remediation Steps</strong>
+                                    <p class="mb-0 text-muted">Create action items to address each violation</p>
+                                </div>
+                            </li>
+                            <li class="list-group-item d-flex align-items-center">
+                                <i class="bi bi-3-circle text-info me-3 fs-4"></i>
+                                <div>
+                                    <strong>Notify Compliance Officer</strong>
+                                    <p class="mb-0 text-muted">Escalate issues to the appropriate personnel</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:inline="javascript">
+        // Parse the summary JSON
+        var summaryJson = /*[[${summary}]]*/ '{}';
+        try {
+            var summary = JSON.parse(summaryJson);
+            document.getElementById('totalEvents').textContent = summary.totalEvents || 0;
+            document.getElementById('passedEvents').textContent = summary.passed || 0;
+            document.getElementById('failedEvents').textContent = summary.failed || 0;
+            document.getElementById('warningEvents').textContent = summary.warnings || 0;
+            
+            var rate = summary.complianceRate || 0;
+            document.getElementById('complianceRate').textContent = rate.toFixed(1) + '%';
+            document.getElementById('complianceBar').style.width = rate + '%';
+            document.getElementById('complianceBar').setAttribute('aria-valuenow', rate);
+            
+            // Change bar color based on rate
+            var bar = document.getElementById('complianceBar');
+            if (rate >= 95) {
+                bar.className = 'progress-bar bg-success';
+            } else if (rate >= 80) {
+                bar.className = 'progress-bar bg-warning';
+            } else {
+                bar.className = 'progress-bar bg-danger';
+            }
+        } catch (e) {
+            console.error('Error parsing summary:', e);
+        }
+    </script>
+</body>
+</html>
